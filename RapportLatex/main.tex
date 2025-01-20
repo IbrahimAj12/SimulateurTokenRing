@@ -1,0 +1,151 @@
+\documentclass{rapportINPTCLOUD}
+\usepackage{lipsum}
+\usepackage{listings}
+\title{Rapport INPT CLOUD} %Titre du fichier
+\usepackage{lipsum} 
+\usepackage{biblatex} %Imports biblatex package
+\addbibresource{bibtex.bib} %Import the bibliography file
+\usepackage{appendix} % Package pour gérer les annexes
+\begin{document}
+
+%----------- Informations du rapport ---------
+
+\titre{Simulateur TokenRing} %Title.pdf
+
+\sujet{Ateliers d’ingénierie
+Projet} %Subject name
+
+\eleves{Ibrahim \textsc{Ajaoun} \\
+		 Badr  \textsc{Lachheb} \\
+		 Imad Eddine \textsc{Bel-houideg}  
+   } %Students
+
+%----------- Initialisation -------------------
+        
+\fairemarges %Afficher les marges
+\fairepagedegarde %Créer la page de garde
+\tabledematieres %Créer la table de matières
+
+
+
+
+\section{Introduction}
+Le but de ce projet est de développer un simulateur de réseau \textbf{Token Ring}, une topologie de communication utilisée dans les réseaux locaux (LAN). Cette simulation reproduit le fonctionnement du protocole ou un jeton circule entre les noeuds pour gérer l'acces au reseau.
+
+\section{Presentation du Token Ring}
+Le protocole \textbf{Token Ring} permet une communication structurée entre plusieurs machines en utilisant un jeton qui circule de manière unidirectionnelle. Un noeud ne peut emettre des donnees que s’il possède ce jeton. Si un noeud est en panne, le systeme doit gérer cette situation pour assurer la continuité du reseau.
+
+\section{Description de l’implémentation}
+
+\subsection{Gestion du Jeton avec un Semaphore}
+Un \textbf{semaphore} est utilisé afin de representer le jeton. Son role est de garantir qu’un seul noeud à la fois peut emettre des données.  
+\begin{itemize}
+    \item \texttt{down(struct Semaphore* s)} : Verifie si le jeton est disponible et le capture.
+    \item \texttt{up(struct Semaphore* s)} : Libere le jeton pour le prochain noeud.
+\end{itemize}
+
+\subsection{Simulation du Reseau}
+\begin{itemize}
+    \item Le programme demande a l’utilisateur de saisir le \textbf{nombre de noeuds} (limite a 10).
+    \item Chaque noeud peut etre \textbf{actif} ou \textbf{en panne}, un etat determine aléatoirement.
+    \item La simulation fonctionne en boucle infinie :
+    \begin{itemize}
+        \item Un noeud actif acquiert le jeton et effectue un \textbf{traitement}.
+        \item Un noeud peut \textbf{tomber en panne} avec une probabilite de 20\%.
+        \item Le jeton est ensuite transmis au \textbf{noeud suivant}.
+    \end{itemize}
+\end{itemize}
+
+\section{Code Source}
+\begin{lstlisting}[language=C, caption={Implementation du Token Ring}, label={lst:tokenring}, breaklines=true]
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+struct Semaphore {
+    int value;
+};
+
+void init_semaphore(struct Semaphore* s, int value) {
+    s->value = value;
+}
+
+void down(struct Semaphore* s) {
+    while (s->value <= 0) {
+    }
+    s->value--;
+}
+
+void up(struct Semaphore* s) {
+    s->value++;
+}
+
+void simulate_token_ring(int num_nodes) {
+    struct Semaphore token;
+    init_semaphore(&token, 1);
+    int current_node = 0;
+    int node_status[num_nodes]; // État des nœuds (1 = actif, 0 = en panne)
+
+    printf("Initialisation des etats des noeuds :\n");
+    for (int i = 0; i < num_nodes; i++) {
+        node_status[i] = rand() % 2;
+        printf("Noeud %d : %s\n", i, node_status[i] ? "Actif" : "En panne");
+    }
+
+    while (1) {
+        while (node_status[current_node] == 0) {
+            printf("Le noeud %d est en panne. On passe au suivant...\n", current_node);
+            current_node = (current_node + 1) % num_nodes;
+        }
+        down(&token);
+        printf("Le noeud %d a recu le jeton\n", current_node);
+
+        printf("Le noeud %d traite ses donnees\n", current_node);
+        
+        // Decider aleatoirement si le noeud tombe en panne
+        if (rand() % 10 < 2) {
+            // 20% de chance de panne
+            printf("Le noeud %d tombe en panne\n", current_node);
+            node_status[current_node] = 0;
+        }
+
+        printf("Le noeud %d passe le jeton\n", current_node);
+        current_node = (current_node + 1) % num_nodes;
+        up(&token);
+    }
+}
+
+int main() {
+    int num_nodes;
+    srand(time(NULL));
+
+    printf("Entrez le nombre de noeuds dans le reseau (max 10) : ");
+    scanf("%d", &num_nodes);
+
+    if (num_nodes <= 0 || num_nodes > 10) {
+        printf("Nombre de noeuds invalide\n");
+        return 1;
+    }
+
+    simulate_token_ring(num_nodes);
+    return 0;
+}
+\end{lstlisting}
+
+\section{Tests et Resultats}
+Lors des tests, on observe :
+\begin{itemize}
+    \item Une bonne circulation du jeton entre les noeuds actifs.
+    \item Une gestion correcte des \textbf{pannes} en sautant les noeuds defectueux.
+    \item Une simulation realiste du comportement d’un reseau \textbf{Token Ring}.
+\end{itemize}
+
+
+
+\section{Conclusion}
+Ce projet nous fournit une implémentation fonctionnelle du \textbf{Token Ring}, respectant l’algorithme donne. Il met en evidence les avantages et les limites de cette topologie, en particulier la gestion des pannes et la transmission controlée du jeton.
+
+
+\end{document}
